@@ -1,12 +1,18 @@
 const express = require("express");
-const cors = require("cors"); // Import cors
+const cors = require("cors");
 const sqlite3 = require("sqlite3").verbose();
-const userRoutes = require("./routes/userRoutes");
+const path = require("path");
+const registrationRoutes = require('./src/routes/registrationRoutes')
+const dbPath = path.join(__dirname, 'data', 'database.db');
+console.log('dbPath', dbPath);
+
+
+require('dotenv').config();
 
 const app = express();
 const PORT = 3000;
 
-const db = new sqlite3.Database("./db/database.db", (err) => {
+const db = new sqlite3.Database(dbPath, (err) => {
     if (err) {
         console.error("Error opening database:", err);
     } else {
@@ -14,15 +20,15 @@ const db = new sqlite3.Database("./db/database.db", (err) => {
     }
 });
 
-// Middleware CORS untuk mengizinkan akses dari frontend
+
 app.use(cors({
-    origin: "http://localhost:5173", // URL Frontend
-    methods: ["GET", "POST", "PUT", "DELETE"], // Method yang diizinkan
-    credentials: true, // Jika perlu mengirim cookies atau header auth
+    origin: "http://localhost:5173", 
+    methods: ["GET", "POST", "PUT", "DELETE"], 
+    credentials: true, 
 }));
 
 app.use(express.json());
-app.use("/registration", userRoutes);
+app.use("/registration", registrationRoutes);
 
 app.listen(PORT, () => {
     console.log(`Running in http://localhost:${PORT}`);
