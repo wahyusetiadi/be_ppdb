@@ -36,7 +36,8 @@ db.serialize(() => {
       akte TEXT CHECK(akte LIKE '%.pdf' OR akte LIKE '%.png'),
       familyRegister TEXT CHECK(familyRegister LIKE '%.pdf' OR familyRegister LIKE '%.png'),
       tkCertificate TEXT CHECK(tkCertificate LIKE '%.pdf' OR tkCertificate LIKE '%.png'),
-      foto TEXT, 
+      foto TEXT,
+      isDeleted INTEGER DEFAULT 0, 
       dibuat_tanggal DATE DEFAULT (DATE('now', '+7 hours')),
       dibuat_jam TIME DEFAULT (TIME('now' , '+7 hours'))
     )
