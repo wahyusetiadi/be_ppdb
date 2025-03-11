@@ -2,7 +2,7 @@ const express = require("express");
 const db = require("../db");
 const router = express.Router();
 
-router.post("/", (req, res) => {
+router.post("/create", (req, res) => {
   const {
     idRegistration,
     name,
@@ -96,7 +96,7 @@ router.get("/", (req, res) => {
   });
 });
 
-router.put("/:id", (req, res) => {
+router.put("/edit/:id", (req, res) => {
   const { id } = req.params;
   const {
     name,
@@ -199,7 +199,7 @@ router.put("/:id", (req, res) => {
   });
 });
 
-router.delete("/:id", (req, res) => {
+router.delete("/delete/:id", (req, res) => {
   const { id } = req.params;
 
   const query = `UPDATE registration SET isDeleted = 1 WHERE id = ?`;
@@ -251,4 +251,35 @@ router.get("/get-all", (req, res) => {
   });
 });
 
+router.get("/:id", (req, res) => {
+  const { id } = req.params;
+  const query = `SELECT * FROM registration WHERE id = ?`;
+
+  db.get(query,[id], (err, rows) => {
+    if (err) {
+      return res.status(500).json({ message: "Gagal GET users", error: err });
+    }
+    res.status(200).json(rows);
+  });
+});
 module.exports = router;
+
+// Endpoint untuk memperbarui status berdasarkan ID
+router.put("/:id/status", (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  if (!status) {
+    return res.status(400).json({ error: "Status is required" });
+  }
+
+  const query = `UPDATE registration SET status = ? WHERE id = ?`;
+
+  db.run(query, [status, id], function (err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+    } else {
+      res.json({ message: "Status updated successfully", changes: this.changes });
+    }
+  });
+});

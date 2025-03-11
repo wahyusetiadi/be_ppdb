@@ -12,13 +12,13 @@ require('dotenv').config();
 const app = express();
 const PORT = 3000;
 
-const db = new sqlite3.Database(dbPath, (err) => {
-    if (err) {
-        console.error("Error opening database:", err);
-    } else {
-        console.log("Database Connected");
-    }
-});
+// const db = new sqlite3.Database(dbPath, (err) => {
+//     if (err) {
+//         console.error("Error opening database:", err);
+//     } else {
+//         console.log("Database Connected");
+//     }
+// });
 
 
 app.use(cors({
