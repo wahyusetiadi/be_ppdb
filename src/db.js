@@ -48,6 +48,18 @@ db.serialize(() => {
       console.log("Table created or already exists.");
     }
   });
+
+  db.run(`CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE,
+    password TEXT
+  )`, (err) => {
+if (err) {
+console.error("Gagal membuat tabel users:", err.message);
+} else {
+console.log("Tabel users siap digunakan.");
+}
+});
 });
 
 module.exports = db;
