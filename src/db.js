@@ -39,7 +39,8 @@ db.serialize(() => {
       foto TEXT,
       isDeleted INTEGER DEFAULT 0, 
       dibuat_tanggal DATE DEFAULT (DATE('now', '+7 hours')),
-      dibuat_jam TIME DEFAULT (TIME('now' , '+7 hours'))
+      dibuat_jam TIME DEFAULT (TIME('now' , '+7 hours')),
+      status TEXT DEFAULT menunggu
     )
   `, (err) => {
     if (err) {
