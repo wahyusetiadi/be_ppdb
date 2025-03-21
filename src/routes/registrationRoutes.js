@@ -1,88 +1,69 @@
 const express = require("express");
-const db = require("../db");
 const router = express.Router();
+const multer = require("multer");
 
-router.post("/create", (req, res) => {
+
+
+
+// Konfigurasi penyimpanan file
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+      cb(null, "uploads/"); // Simpan file di folder uploads/
+  },
+  filename: function (req, file, cb) {
+      cb(null, file.originalname); // Nama file agar unik
+  },
+});
+
+const upload = multer({ storage: storage });
+
+
+const db = require("../db");
+
+
+
+// API Endpoint untuk registrasi
+router.post("/create", upload.fields([
+  { name: "akte", maxCount: 1 },
+  { name: "familyRegister", maxCount: 1 },
+  { name: "tkCertificate", maxCount: 1 },
+  { name: "foto", maxCount: 1 },
+]), (req, res) => {
   const {
-    idRegistration,
-    name,
-    gender,
-    religion,
-    birthPlace,
-    birthDate,
-    address,
-    parentPhone,
-    akte,
-    familyRegister,
-    tkCertificate,
-    foto,
+      idRegistration, name, gender, religion, birthPlace, birthDate, address, parentPhone
   } = req.body;
 
-  if (
-    !idRegistration ||
-    !name ||
-    !gender ||
-    !religion ||
-    !birthPlace ||
-    !birthDate ||
-    !address ||
-    !parentPhone ||
-    !akte ||
-    !familyRegister ||
-    !tkCertificate ||
-    !foto
-  ) {
-    return res.status(400).json({ message: "All data must be provided." });
+  if (!req.files.akte || !req.files.familyRegister || !req.files.tkCertificate || !req.files.foto) {
+      return res.status(400).json({ message: "All files must be uploaded." });
+  }
+
+  if (!idRegistration || !name || !gender || !religion || !birthPlace || !birthDate || !address || !parentPhone) {
+      return res.status(400).json({ message: "All data must be provided." });
   }
 
   if (isNaN(idRegistration)) {
-    return res
-      .status(400)
-      .json({ message: `/idRegistration/ must be Number.` });
+      return res.status(400).json({ message: "idRegistration must be a Number." });
   }
 
+  const akte = req.files.akte[0].filename;
+  const familyRegister = req.files.familyRegister[0].filename;
+  const tkCertificate = req.files.tkCertificate[0].filename;
+  const foto = req.files.foto[0].filename;
+
   const query = `INSERT INTO registration (
-    idRegistration,
-    name, 
-    gender,
-    religion,
-    birthPlace,
-    birthDate,
-    address,
-    parentPhone,
-    akte,
-    familyRegister,
-    tkCertificate,
-    foto
+      idRegistration, name, gender, religion, birthPlace, birthDate, address, 
+      parentPhone, akte, familyRegister, tkCertificate, foto
   ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
-  db.run(
-    query,
-    [
-      idRegistration,
-      name,
-      gender,
-      religion,
-      birthPlace,
-      birthDate,
-      address,
-      parentPhone,
-      akte,
-      familyRegister,
-      tkCertificate,
-      foto,
-    ],
-    function (err) {
+  db.run(query, [
+      idRegistration, name, gender, religion, birthPlace, birthDate, address, 
+      parentPhone, akte, familyRegister, tkCertificate, foto
+  ], function (err) {
       if (err) {
-        return res
-          .status(500)
-          .json({ message: "Registration Failed", error: err });
+          return res.status(500).json({ message: "Registration Failed", error: err });
       }
-      res
-        .status(201)
-        .json({ message: "Registrasi user berhasil", id: this.lastID });
-    }
-  );
+      res.status(201).json({ message: "Registrasi user berhasil", id: this.lastID });
+  });
 });
 
 router.get("/", (req, res) => {

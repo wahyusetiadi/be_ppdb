@@ -5,7 +5,7 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
 const db = new sqlite3.Database("./data/database.db");
-const SECRET_KEY = "mysecretkey"
+const SECRET_KEY = "mysecretkey";
 
 //create
 router.post("/", (req, res) => {
@@ -35,19 +35,17 @@ router.post("/", (req, res) => {
       if (err) {
         return res.status(500).json({ error: err.message });
       }
-      res
-        .status(201)
-        .json({
-          id: this.lastID,
-          name,
-          gender,
-          religion,
-          birthPlace,
-          birthDate,
-          address,
-          parentPhone,
-          documents,
-        });
+      res.status(201).json({
+        id: this.lastID,
+        name,
+        gender,
+        religion,
+        birthPlace,
+        birthDate,
+        address,
+        parentPhone,
+        documents,
+      });
     }
   );
 });
@@ -205,7 +203,15 @@ router.post("/login", (req, res) => {
         SECRET_KEY,
         { expiresIn: "1h" }
       );
-      res.json({ token });
+
+      console.log("token res", token);
+      const decoded = jwt.decode(token);
+      console.log(decoded); // Akan menampilkan { id: 1, username: "admin", iat: 1700000000, exp: 1700003600 }
+
+      res.json({
+        token,
+        user: { id: user.id, username: user.username }
+      });
     }
   );
 });
@@ -219,11 +225,16 @@ router.get("/me", (req, res) => {
   jwt.verify(token, SECRET_KEY, (err, decoded) => {
     if (err) return res.status(401).json({ message: "token tidak valid" });
 
-    db.get("SELECT id, username FROM users WHERE id = ? ", [decoded.id], (err, user) => {
-      if (err || !user) return res.status(404).json({ message: "User tidak ditemukan" });
-      
-      res.json(user);
-    });
+    db.get(
+      "SELECT id, username FROM users WHERE id = ? ",
+      [decoded.id],
+      (err, user) => {
+        if (err || !user)
+          return res.status(404).json({ message: "User tidak ditemukan" });
+
+        res.json(user);
+      }
+    );
   });
 });
 
