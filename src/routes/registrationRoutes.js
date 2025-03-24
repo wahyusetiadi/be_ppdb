@@ -138,7 +138,6 @@ router.put(
       parentPhone,
     } = req.body;
 
-    // Validasi semua field wajib
     if (
       !name ||
       !gender ||
@@ -151,22 +150,6 @@ router.put(
       return res.status(400).json({ message: "All data must be provided." });
     }
 
-    // Validasi file wajib
-    if (
-      !req.files.akte ||
-      !req.files.familyRegister ||
-      !req.files.tkCertificate ||
-      !req.files.foto
-    ) {
-      return res.status(400).json({ message: "All files must be uploaded." });
-    }
-
-    // Ambil nama file baru
-    const akte = req.files.akte[0].filename;
-    const familyRegister = req.files.familyRegister[0].filename;
-    const tkCertificate = req.files.tkCertificate[0].filename;
-    const foto = req.files.foto[0].filename;
-
     const checkQuery = `SELECT * FROM registration WHERE id = ?`;
 
     db.get(checkQuery, [id], (err, row) => {
@@ -177,6 +160,12 @@ router.put(
       if (!row) {
         return res.status(404).json({ message: "Data not found" });
       }
+
+      // Ambil nama file baru jika ada file baru yang di-upload, jika tidak pakai file lama
+      const akte = req.files.akte?.[0]?.filename || row.akte;
+      const familyRegister = req.files.familyRegister?.[0]?.filename || row.familyRegister;
+      const tkCertificate = req.files.tkCertificate?.[0]?.filename || row.tkCertificate;
+      const foto = req.files.foto?.[0]?.filename || row.foto;
 
       const isTextSame =
         row.name === name &&
@@ -197,7 +186,7 @@ router.put(
         return res.status(400).json({ message: "No changes detected" });
       }
 
-      // Hapus file lama jika file baru berbeda
+      // Hapus file lama jika ada file baru
       const uploadDir = path.join(__dirname, "..", "uploads");
 
       const deleteOldFile = (oldFileName) => {
@@ -208,14 +197,11 @@ router.put(
         }
       };
 
-      if (row.akte !== akte) deleteOldFile(row.akte);
-      if (row.familyRegister !== familyRegister)
-        deleteOldFile(row.familyRegister);
-      if (row.tkCertificate !== tkCertificate)
-        deleteOldFile(row.tkCertificate);
-      if (row.foto !== foto) deleteOldFile(row.foto);
+      if (req.files.akte) deleteOldFile(row.akte);
+      if (req.files.familyRegister) deleteOldFile(row.familyRegister);
+      if (req.files.tkCertificate) deleteOldFile(row.tkCertificate);
+      if (req.files.foto) deleteOldFile(row.foto);
 
-      // Update ke database
       const updateQuery = `
         UPDATE registration 
         SET name = ?, gender = ?, religion = ?, birthPlace = ?, birthDate = ?, address = ?, parentPhone = ?, akte = ?, familyRegister = ?, tkCertificate = ?, foto = ?
@@ -253,6 +239,7 @@ router.put(
     });
   }
 );
+
 
 router.delete("/delete/:id", (req, res) => {
   const { id } = req.params;
