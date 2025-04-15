@@ -38,7 +38,7 @@ app.use("/registration", registrationRoutes);
 app.use("/users", userRoutes);
 
 // folder statis untuk akses file upload
-app.use("/uploads", express.static("uploads"))
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 //jalankan server
 app.listen(PORT, () => {

@@ -2,7 +2,10 @@ const express = require("express");
 const router = express.Router();
 const multer = require("multer");
 const fs = require("fs");
-const path = require("path")
+const path = require("path");
+const sendRegistrationEmail = require("../../mailer"); // atau sesuaikan path-nya
+const puppeteer = require("puppeteer")
+
 
 // Konfigurasi penyimpanan file
 const storage = multer.diskStorage({
@@ -37,8 +40,10 @@ router.post(
       birthDate,
       address,
       parentPhone,
+      email,
     } = req.body;
 
+    // Validasi file upload
     if (
       !req.files.akte ||
       !req.files.familyRegister ||
@@ -48,6 +53,7 @@ router.post(
       return res.status(400).json({ message: "All files must be uploaded." });
     }
 
+    // Validasi input form
     if (
       !idRegistration ||
       !name ||
@@ -56,7 +62,8 @@ router.post(
       !birthPlace ||
       !birthDate ||
       !address ||
-      !parentPhone
+      !parentPhone ||
+      !email
     ) {
       return res.status(400).json({ message: "All data must be provided." });
     }
@@ -74,8 +81,8 @@ router.post(
 
     const query = `INSERT INTO registration (
       idRegistration, name, gender, religion, birthPlace, birthDate, address, 
-      parentPhone, akte, familyRegister, tkCertificate, foto
-  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+      parentPhone, email, akte, familyRegister, tkCertificate, foto
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
     db.run(
       query,
@@ -88,6 +95,7 @@ router.post(
         birthDate,
         address,
         parentPhone,
+        email,
         akte,
         familyRegister,
         tkCertificate,
@@ -99,9 +107,21 @@ router.post(
             .status(500)
             .json({ message: "Registration Failed", error: err });
         }
-        res
-          .status(201)
-          .json({ message: "Registrasi user berhasil", id: this.lastID });
+        // Kirim email setelah registrasi berhasil
+        sendRegistrationEmail(email, idRegistration)
+          .then(() => {
+            res.status(201).json({
+              message: "Registrasi user berhasil dan email telah dikirim.",
+              id: idRegistration,
+            });
+          })
+          .catch((emailErr) => {
+            res.status(201).json({
+              message: "Registrasi berhasil, tetapi gagal mengirim email.",
+              error: emailErr,
+              id: idRegistration,
+            });
+          });
       }
     );
   }
@@ -136,6 +156,7 @@ router.put(
       birthDate,
       address,
       parentPhone,
+      email,
     } = req.body;
 
     if (
@@ -145,7 +166,8 @@ router.put(
       !birthPlace ||
       !birthDate ||
       !address ||
-      !parentPhone
+      !parentPhone ||
+      !email
     ) {
       return res.status(400).json({ message: "All data must be provided." });
     }
@@ -163,8 +185,10 @@ router.put(
 
       // Ambil nama file baru jika ada file baru yang di-upload, jika tidak pakai file lama
       const akte = req.files.akte?.[0]?.filename || row.akte;
-      const familyRegister = req.files.familyRegister?.[0]?.filename || row.familyRegister;
-      const tkCertificate = req.files.tkCertificate?.[0]?.filename || row.tkCertificate;
+      const familyRegister =
+        req.files.familyRegister?.[0]?.filename || row.familyRegister;
+      const tkCertificate =
+        req.files.tkCertificate?.[0]?.filename || row.tkCertificate;
       const foto = req.files.foto?.[0]?.filename || row.foto;
 
       const isTextSame =
@@ -174,7 +198,8 @@ router.put(
         row.birthPlace === birthPlace &&
         row.birthDate === birthDate &&
         row.address === address &&
-        row.parentPhone === parentPhone;
+        row.parentPhone === parentPhone &&
+        row.email === email;
 
       const isFileSame =
         row.akte === akte &&
@@ -204,7 +229,7 @@ router.put(
 
       const updateQuery = `
         UPDATE registration 
-        SET name = ?, gender = ?, religion = ?, birthPlace = ?, birthDate = ?, address = ?, parentPhone = ?, akte = ?, familyRegister = ?, tkCertificate = ?, foto = ?
+        SET name = ?, gender = ?, religion = ?, birthPlace = ?, birthDate = ?, address = ?, parentPhone = ?, email = ?, akte = ?, familyRegister = ?, tkCertificate = ?, foto = ?
         WHERE id = ?`;
 
       db.run(
@@ -217,6 +242,7 @@ router.put(
           birthDate,
           address,
           parentPhone,
+          email,
           akte,
           familyRegister,
           tkCertificate,
@@ -295,15 +321,26 @@ router.get("/get-all", (req, res) => {
 
 router.get("/:id", (req, res) => {
   const { id } = req.params;
-  const query = `SELECT idRegistration, dibuat_tanggal, dibuat_jam, status, name FROM registration WHERE idRegistration = ?`;
+  const query = `SELECT idRegistration, dibuat_tanggal, dibuat_jam, status, name, address, gender, religion, birthPlace, birthDate, parentPhone, foto FROM registration WHERE idRegistration = ?`;
 
-  db.get(query, [id], (err, rows) => {
+  db.get(query, [id], (err, row) => {
     if (err) {
       return res.status(500).json({ message: "Gagal GET users", error: err });
     }
-    res.status(200).json(rows);
+
+    if (!row) {
+      return res.status(404).json({ message: "Data tidak ditemukan" });
+    }
+
+    // Tambahkan path 'uploads/' jika ada foto
+    if (row.foto) {
+      row.foto = `uploads/${row.foto}`;
+    }
+
+    res.status(200).json(row);
   });
 });
+
 
 router.get("/edit/:id", (req, res) => {
   const { id } = req.params;
@@ -339,4 +376,39 @@ router.put("/:id/status", (req, res) => {
     }
   });
 });
+
+
+router.get("/:id/print", async (req, res) => {
+  const { id } = req.params;
+  const frontendUrl = `http://localhost:5173/bukti-pendaftaran/${id}`;
+
+  try {
+    const browser = await puppeteer.launch({
+      headless: "new", // untuk puppeteer versi terbaru
+      args: ["--no-sandbox", "--disable-setuid-sandbox"]
+    });
+    const page = await browser.newPage();
+    await page.goto(frontendUrl, { waitUntil: "networkidle0" });
+
+    const pdfBuffer = await page.pdf({
+      format: "A4",
+      printBackground: true
+    });
+
+    await browser.close();
+
+    res.set({
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="bukti-pendaftaran-${id}.pdf"`,
+    });
+
+    res.send(pdfBuffer);
+  } catch (err) {
+    console.error("Gagal generate PDF:", err);
+    res.status(500).send("Gagal generate PDF");
+  }
+});
+
 module.exports = router;
+
+
