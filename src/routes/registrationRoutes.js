@@ -4,8 +4,10 @@ const multer = require("multer");
 const fs = require("fs");
 const path = require("path");
 const sendRegistrationEmail = require("../../mailer"); // atau sesuaikan path-nya
-const puppeteer = require("puppeteer")
-
+const puppeteer = require("puppeteer");
+// const PDFDocument = require('pdfkit');
+const ejs = require("ejs");
+const getDataById = require("../services/getDataById");
 
 // Konfigurasi penyimpanan file
 const storage = multer.diskStorage({
@@ -257,15 +259,12 @@ router.put(
             });
           }
 
-          res
-            .status(200)
-            .json({ message: `Update successful for id ${id}` });
+          res.status(200).json({ message: `Update successful for id ${id}` });
         }
       );
     });
   }
 );
-
 
 router.delete("/delete/:id", (req, res) => {
   const { id } = req.params;
@@ -341,7 +340,6 @@ router.get("/:id", (req, res) => {
   });
 });
 
-
 router.get("/edit/:id", (req, res) => {
   const { id } = req.params;
   const query = `SELECT * FROM registration WHERE id = ?`;
@@ -377,38 +375,93 @@ router.put("/:id/status", (req, res) => {
   });
 });
 
-
 router.get("/:id/print", async (req, res) => {
   const { id } = req.params;
-  const frontendUrl = `http://localhost:5173/bukti-pendaftaran/${id}`;
 
   try {
-    const browser = await puppeteer.launch({
-      headless: "new", // untuk puppeteer versi terbaru
-      args: ["--no-sandbox", "--disable-setuid-sandbox"]
-    });
-    const page = await browser.newPage();
-    await page.goto(frontendUrl, { waitUntil: "networkidle0" });
+    const data = await getDataById(id);
 
+    if (!data) {
+      console.log("Data tidak ditemukan untuk ID:", id);
+      return res.status(404).send("Data tidak ditemukan");
+    }
+
+    // Proses foto jika ada
+    let fotoBase64 = "";
+    if (data.foto) {
+      const fotoPath = path.join(__dirname, `../../uploads/${data.foto}`);
+      console.log("Full foto path:", fotoPath);
+      if (fs.existsSync(fotoPath)) {
+        const fotoBuffer = fs.readFileSync(fotoPath);
+        console.log("Foto buffer size:", fotoBuffer.length);
+        fotoBase64 = `data:image/jpeg;base64,${fotoBuffer.toString("base64")}`;
+        console.log("Foto Base64 (preview):", fotoBase64.slice(0, 100));
+      } else {
+        console.log("File foto tidak ditemukan:", fotoPath);
+      }
+    }
+    // Logo Sekolah
+    const logoSekolahPath = path.join(__dirname, "../../assets/LogoSekolah.svg");
+    const logoEduNEXPath = path.join(__dirname, "../../assets/Logo.svg");
+
+    const logoSekolahBase64 = fs.existsSync(logoSekolahPath)
+      ? `data:image/svg+xml;base64,${fs
+          .readFileSync(logoSekolahPath)
+          .toString("base64")}`
+      : "";
+
+    const logoEduNEXBase64 = fs.existsSync(logoEduNEXPath)
+      ? `data:image/svg+xml;base64,${fs
+          .readFileSync(logoEduNEXPath)
+          .toString("base64")}`
+      : "";
+
+      console.log("Foto:", fotoBase64.slice(0, 100)); // preview base64
+        console.log("Logo Sekolah:", logoSekolahBase64.slice(0, 100));
+        console.log("Logo EduNEX:", logoEduNEXBase64.slice(0, 100));
+
+    // Render template EJS ke HTML string
+    const html = await ejs.renderFile(
+      path.join(__dirname, "../views/bukti-pendaftaran.ejs"),
+      { data, fotoBase64, logoSekolahBase64, logoEduNEXBase64 }
+    );
+
+    // Launch browser dengan mode headless
+    const browser = await puppeteer.launch({ headless: "new" });
+    const page = await browser.newPage();
+
+    // Set content HTML
+    await page.setContent(html, { waitUntil: "networkidle0" });
+
+    // Optimize PDF size
     const pdfBuffer = await page.pdf({
       format: "A4",
-      printBackground: true
+      margin: {
+        top: "1cm",
+        right: "1cm",
+        bottom: "1cm",
+        left: "1cm",
+      },
+      compress: true, // Menggunakan kompresi
+      preferCSSPageSize: true,
+      printBackground: true, // Matikan background jika tidak perlu
     });
 
     await browser.close();
 
-    res.set({
-      "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="bukti-pendaftaran-${id}.pdf"`,
-    });
-
-    res.send(pdfBuffer);
-  } catch (err) {
-    console.error("Gagal generate PDF:", err);
-    res.status(500).send("Gagal generate PDF");
+    // Set header dan kirim PDF
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      'attachment; filename="bukti-pendaftaran.pdf"'
+    );
+    res.setHeader("Content-Length", pdfBuffer.length);
+    res.end(pdfBuffer);
+  } catch (error) {
+    console.error("Error spesifik:", error.message);
+    console.error("Stack trace:", error.stack);
+    res.status(500).send("Terjadi kesalahan saat membuat PDF.");
   }
 });
 
 module.exports = router;
-
-

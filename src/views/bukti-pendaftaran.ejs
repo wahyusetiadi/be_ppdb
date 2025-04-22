@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Bukti Pendaftaran</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+        }
+
+        .container {
+            width: 595px;
+            margin: 0 auto;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            padding-bottom: 16px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 40px;
+        }
+
+        .header img {
+            height: 50px;
+        }
+
+        .title {
+            text-align: center;
+            font-weight: bold;
+            font-size: 20px;
+            padding: 32px 0;
+        }
+
+        .section {
+            padding: 0 40px;
+        }
+
+        .photo-info {
+            display: flex;
+            gap: 24px;
+            text-align: left;
+        }
+
+        .photo {
+            width: 120px;
+            height: 160px;
+            background-color: #1e293b;
+        }
+
+        .photo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .info {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .row {
+            display: flex;
+            gap: 12px;
+        }
+
+        .label {
+            font-weight: bold;
+            width: 160px;
+        }
+
+        .full-info {
+            margin-top: 48px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .full-info .row .label {
+            min-width: 224px;
+        }
+
+        hr {
+            border: none;
+            border-top: 1px solid #ccc;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <img src="<%= logoSekolahBase64 %>" alt="Logo Sekolah"  width="100" />
+                <p style="font-weight: bold; font-size: 18px;">SD XYZ 1</p>
+            </div>
+            <img src="<%= logoEduNEXBase64 %>" alt="Logo EduNEX"  width="100" />
+        </div>
+
+        <hr />
+
+        <!-- Title -->
+        <div class="title">Bukti Pendaftaran</div>
+
+        <!-- Info & Photo -->
+        <div class="section">
+            <div class="photo-info">
+                <div class="photo">
+                    <img src="<%= fotoBase64 %>"  alt="Foto Pendaftar" width="120" height="150" />
+                </div>
+                <div class="info">
+                    <div class="row">
+                        <p class="label">ID Pendaftaran</p>
+                        <p><%= data.idRegistration %></p>
+                    </div>
+                    <hr />
+                    <div class="row">
+                        <p class="label">Tanggal Registrasi</p>
+                        <p><%= data.dibuat_tanggal %> | <%= data.dibuat_jam %></p>
+                    </div>
+                    <hr />
+                </div>
+            </div>
+        </div>
+
+        <!-- Full Info -->
+        <div class="section full-info">
+            <div class="row">
+                <p class="label">Nama Lengkap</p>
+                <p><%= data.name %></p>
+            </div>
+            <hr />
+            <div class="row">
+                <p class="label">Jenis Kelamin</p>
+                <p><%= data.gender %></p>
+            </div>
+            <hr />
+            <div class="row">
+                <p class="label">Agama</p>
+                <p><%= data.religion %></p>
+            </div>
+            <hr />
+            <div class="row">
+                <p class="label">Tempat, Tanggal Lahir</p>
+                <p><%= data.birthPlace %>, <%= data.birthDate %></p>
+            </div>
+            <hr />
+            <div class="row">
+                <p class="label">Alamat</p>
+                <p><%= data.address %></p>
+            </div>
+            <hr />
+            <div class="row">
+                <p class="label">No. Telp Orang Tua</p>
+                <p><%= data.parentPhone %></p>
+            </div>
+            <hr />
+        </div>
+    </div>
+</body>
+</html>
