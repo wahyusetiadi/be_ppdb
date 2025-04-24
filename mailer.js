@@ -12,7 +12,7 @@ const transporter = nodemailer.createTransport({
 });
 
 const sendRegistrationEmail = (to, id) => {
-  const link = `http://localhost:5173/bukti-pendaftaran/${id}`; // GANTI ke link frontend kamu
+  const link = `https://ppdb.edunex.id/api/bukti-pendaftaran/${id}`; // GANTI ke link frontend kamu
 
   const mailOptions = {
     from: `PPDB Admin <${process.env.EMAIL_USER}>`,

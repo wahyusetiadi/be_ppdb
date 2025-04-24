@@ -27,6 +27,7 @@ db.serialize(() => {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       idRegistration INTEGER,
       name TEXT NOT NULL,
+      email TEXT NOT NULL,
       gender TEXT NOT NULL,
       religion TEXT NOT NULL,
       birthPlace TEXT NOT NULL,

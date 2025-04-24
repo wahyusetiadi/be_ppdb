@@ -22,6 +22,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 const db = require("../db");
+const { log } = require("console");
 
 // API Endpoint untuk registrasi
 router.post(
@@ -377,6 +378,9 @@ router.put("/:id/status", (req, res) => {
 
 router.get("/:id/print", async (req, res) => {
   const { id } = req.params;
+
+  console.log('id',id);
+  
 
   try {
     const data = await getDataById(id);

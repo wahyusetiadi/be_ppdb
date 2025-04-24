@@ -11,7 +11,7 @@ const exportRoutes = require('./src/routes/exportRoutes');
 require('dotenv').config();
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT;
 
 const dbPath = path.join(__dirname, 'data', 'database.db');
 console.log('dbPath', dbPath);
