@@ -22,6 +22,12 @@ router.get("/excel", async (req, res) => {
       { header: "Tanggal Lahir", key: "birthDate", width: 15 },
       { header: "Alamat", key: "address", width: 25 },
       { header: "Nomor Orang Tua", key: "parentPhone", width: 15 },
+      { header: "Scan Akte Kelahiran", key: "akte", width: 15 },
+      { header: "Scan Kartu Keluarga", key: "familyRegister", width: 15 },
+      { header: "Scan Ijazah TK", key: "tkCertificate", width: 15 },
+      { header: "Pas Foto 3x4", key: "foto", width: 15 },
+      { header: "Dibuat Tanggal", key: "dibuat_tanggal", width: 15 },
+      { header: "Dibuat Jam", key: "dibuat_jam", width: 15 },
     ];
 
     // Ambil data dari database SQLite3

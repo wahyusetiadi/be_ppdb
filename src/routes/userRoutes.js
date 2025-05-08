@@ -1,10 +1,10 @@
 const express = require("express");
 const router = express.Router();
-const sqlite3 = require("sqlite3").verbose();
+const mysql = require('mysql2');
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
-const db = new sqlite3.Database("./data/database.db");
+const db = require('../db')
 const SECRET_KEY = "mysecretkey";
 
 //create
@@ -19,7 +19,7 @@ router.post("/", (req, res) => {
     parentPhone,
     documents,
   } = req.body;
-  db.run(
+  db.query(
     `INSERT INTO registration (name, gender, religion, birthPlace, birthDate, address, parentPhone, documents) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       name,
@@ -52,7 +52,7 @@ router.post("/", (req, res) => {
 
 //read
 router.get("/", (req, res) => {
-  db.all(`SELECT * FROM users`, [], (err, rows) => {
+  db.query(`SELECT * FROM users`, [], (err, rows) => {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
@@ -74,18 +74,7 @@ router.put("/:id", (req, res) => {
     documents,
   } = req.body;
 
-  // if(!name || !gender || !religion || !birthPlace || !birthDate || !address || !parentPhone || !documents ) {
-  //   return res.status(400).json({ message: 'Semua field wajib diisi(name, gender, religion, birthPlace, birthDate, address, parentPhone, documents).'});
-  // }
-
-  // const checkQuery = 'SELECT * FROM students WHERE name = ? AND id != ?';
-  // db.get(checkQuery, [name, id], (err, row) => {
-  //   if (err) {
-  //     return res.status(500).json({ message: "Terjadi kesalahan pada server." });
-  //   }
-  //   if(row) {
-  //     return res.status(400).json({ message: 'Email sudah digunakan oleh user lain.' });
-  //   }
+ 
 
   const updateQuery = `
     UPDATE registration
@@ -93,7 +82,7 @@ router.put("/:id", (req, res) => {
     WHERE id = ?
     `;
 
-  db.run(
+  db.query(
     updateQuery,
     [
       name,
@@ -110,11 +99,11 @@ router.put("/:id", (req, res) => {
       if (err) {
         return res
           .status(500)
-          .json({ message: "Gagal memperbarui student", error: err });
+          .json({ message: "Gagal memperbarui user", error: err });
       }
 
       if (this.changes === 0) {
-        return res.status(404).json({ message: "student tidak ditemukan" });
+        return res.status(404).json({ message: "user tidak ditemukan" });
       }
 
       res
@@ -128,9 +117,9 @@ router.put("/:id", (req, res) => {
 //delete
 router.delete("/:id", (req, res) => {
   const { id } = req.params;
-  const query = `DELETE FROM students WHERE id + ?`;
+  const query = `DELETE FROM users WHERE id + ?`;
 
-  db.run(query, [id], function (err) {
+  db.query(query, [id], function (err) {
     if (err) {
       return res
         .status(500)
@@ -158,7 +147,7 @@ router.post("/register", async (req, res) => {
 
     console.log("Mencoba insert user:", username); // Debugging log
 
-    db.run(
+    db.query(
       "INSERT INTO users (username, password) VALUES (?, ?)",
       [username, hashedPassword],
       function (err) {
@@ -181,7 +170,7 @@ router.post("/register", async (req, res) => {
 router.post("/login", (req, res) => {
   const { username, password } = req.body;
 
-  db.get(
+  db.query(
     "SELECT * FROM users WHERE username = ?",
     [username],
     async (err, user) => {
@@ -225,7 +214,7 @@ router.get("/me", (req, res) => {
   jwt.verify(token, SECRET_KEY, (err, decoded) => {
     if (err) return res.status(401).json({ message: "token tidak valid" });
 
-    db.get(
+    db.query(
       "SELECT id, username FROM users WHERE id = ? ",
       [decoded.id],
       (err, user) => {
