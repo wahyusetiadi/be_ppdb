@@ -1,8 +1,6 @@
 const express = require("express");
 const router = express.Router();
 const ExcelJS = require("exceljs");
-const path = require("path");
-const fs = require("fs");
 
 const db = require("../db");
 
@@ -30,14 +28,10 @@ router.get("/excel", async (req, res) => {
       { header: "Dibuat Jam", key: "dibuat_jam", width: 15 },
     ];
 
-    // Ambil data dari database SQLite3
-    db.all("SELECT * FROM registration", async (err, rows) => {
-      if (err) {
-        return res.status(500).json({ error: err.message });
-      }
+     // Ambil data dari DB dengan async/await
+     const [rows] = await db.query("SELECT * FROM registration");
 
-      rows.forEach((row) => worksheet.addRow(row));
-
+     rows.forEach((row) => worksheet.addRow(row));
      // --- Styling Excel ---
       // Header tebal dan border
       worksheet.getRow(1).eachCell((cell) => {
@@ -74,8 +68,8 @@ router.get("/excel", async (req, res) => {
         "attachment; filename=data_pendaftar.xlsx"
       );
 
-      workbook.xlsx.write(res).then(() => res.end());
-    });
+      await workbook.xlsx.write(res);
+    res.end();
   } catch (error) {
     console.error("Gagal export Excel:", error);
     res.status(500).send("Gagal export Excel");

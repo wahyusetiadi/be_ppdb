@@ -29,9 +29,136 @@ router.post(
     { name: "tkCertificate", maxCount: 1 },
     { name: "foto", maxCount: 1 },
   ]),
-  (req, res) => {
+  async (req, res) => {
+    try {
+      const {
+        idRegistration,
+        name,
+        gender,
+        religion,
+        birthPlace,
+        birthDate,
+        address,
+        parentPhone,
+        email,
+      } = req.body;
+
+      if (
+        !req.files.akte ||
+        !req.files.familyRegister ||
+        !req.files.tkCertificate ||
+        !req.files.foto
+      ) {
+        return res.status(400).json({ message: "All files must be uploaded." });
+      }
+
+      if (
+        !idRegistration ||
+        !name ||
+        !gender ||
+        !religion ||
+        !birthPlace ||
+        !birthDate ||
+        !address ||
+        !parentPhone ||
+        !email
+      ) {
+        return res.status(400).json({ message: "All data must be provided." });
+      }
+
+      if (isNaN(idRegistration)) {
+        return res.status(400).json({ message: "idRegistration must be a Number." });
+      }
+
+      const akte = req.files.akte[0].filename;
+      const familyRegister = req.files.familyRegister[0].filename;
+      const tkCertificate = req.files.tkCertificate[0].filename;
+      const foto = req.files.foto[0].filename;
+
+      const query = `INSERT INTO registration (
+        idRegistration, name, gender, religion, birthPlace, birthDate, address, 
+        parentPhone, email, akte, familyRegister, tkCertificate, foto
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+      await db.execute(query, [
+        idRegistration,
+        name,
+        gender,
+        religion,
+        birthPlace,
+        birthDate,
+        address,
+        parentPhone,
+        email,
+        akte,
+        familyRegister,
+        tkCertificate,
+        foto,
+      ]);
+
+      try {
+        await sendRegistrationEmail(email, idRegistration);
+        res.status(201).json({ message: "Registrasi user berhasil dan email telah dikirim.", id: idRegistration });
+      } catch (emailErr) {
+        res.status(201).json({ message: "Registrasi berhasil, tetapi gagal mengirim email.", error: emailErr.message, id: idRegistration });
+      }
+    } catch (err) {
+      res.status(500).json({ message: "Registration Failed", error: err.message });
+    }
+  }
+);
+
+// --- GET ALL ---
+router.get("/", async (req, res) => {
+  try {
+    const [rows] = await db.query(`SELECT * FROM registration WHERE isDeleted = 0`);
+    res.status(200).json(rows);
+  } catch (err) {
+    res.status(500).json({ message: "Gagal GET users", error: err.message });
+  }
+});
+
+// --- GET DETAIL /:id ---
+router.get("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const query = `SELECT idRegistration, dibuat_tanggal, dibuat_jam, status, name, address, gender, religion, birthPlace, birthDate, parentPhone, foto FROM registration WHERE idRegistration = ?`;
+
+    const [results] = await db.query(query, [id]);
+    
+    if (results.length === 0) {
+      return res.status(404).json({ message: "Data tidak ditemukan" });
+    }
+
+    const row = results[0];
+    if (row.foto) row.foto = `uploads/${row.foto}`;
+
+    res.status(200).json(row);
+  } catch (err) {
+    res.status(500).json({ message: "Gagal GET users", error: err.message });
+  }
+});
+
+// --- GET ALL (admin) ---
+router.get("/get-all", async (req, res) => {
+  try {
+    const [rows] = await db.query(`SELECT * FROM registration`);
+    res.status(200).json(rows);
+  } catch (err) {
+    res.status(500).json({ message: "Gagal GET users", error: err.message });
+  }
+});
+
+// --- EDIT ---
+router.put("/edit/:id", upload.fields([
+  { name: "akte", maxCount: 1 },
+  { name: "familyRegister", maxCount: 1 },
+  { name: "tkCertificate", maxCount: 1 },
+  { name: "foto", maxCount: 1 },
+]), async (req, res) => {
+  try {
+    const { id } = req.params;
     const {
-      idRegistration,
       name,
       gender,
       religion,
@@ -42,129 +169,15 @@ router.post(
       email,
     } = req.body;
 
-    if (
-      !req.files.akte ||
-      !req.files.familyRegister ||
-      !req.files.tkCertificate ||
-      !req.files.foto
-    ) {
-      return res.status(400).json({ message: "All files must be uploaded." });
-    }
-
-    if (
-      !idRegistration ||
-      !name ||
-      !gender ||
-      !religion ||
-      !birthPlace ||
-      !birthDate ||
-      !address ||
-      !parentPhone ||
-      !email
-    ) {
+    if (!name || !gender || !religion || !birthPlace || !birthDate || !address || !parentPhone || !email) {
       return res.status(400).json({ message: "All data must be provided." });
     }
 
-    if (isNaN(idRegistration)) {
-      return res.status(400).json({ message: "idRegistration must be a Number." });
+    const [results] = await db.query(`SELECT * FROM registration WHERE id = ?`, [id]);
+    
+    if (results.length === 0) {
+      return res.status(404).json({ message: "Data not found" });
     }
-
-    const akte = req.files.akte[0].filename;
-    const familyRegister = req.files.familyRegister[0].filename;
-    const tkCertificate = req.files.tkCertificate[0].filename;
-    const foto = req.files.foto[0].filename;
-
-    const query = `INSERT INTO registration (
-      idRegistration, name, gender, religion, birthPlace, birthDate, address, 
-      parentPhone, email, akte, familyRegister, tkCertificate, foto
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-
-    db.query(query, [
-      idRegistration,
-      name,
-      gender,
-      religion,
-      birthPlace,
-      birthDate,
-      address,
-      parentPhone,
-      email,
-      akte,
-      familyRegister,
-      tkCertificate,
-      foto,
-    ], (err) => {
-      if (err) return res.status(500).json({ message: "Registration Failed", error: err });
-
-      sendRegistrationEmail(email, idRegistration)
-        .then(() => {
-          res.status(201).json({ message: "Registrasi user berhasil dan email telah dikirim.", id: idRegistration });
-        })
-        .catch((emailErr) => {
-          res.status(201).json({ message: "Registrasi berhasil, tetapi gagal mengirim email.", error: emailErr, id: idRegistration });
-        });
-    });
-  }
-);
-
-// --- GET ALL ---
-router.get("/", (req, res) => {
-  db.query(`SELECT * FROM registration WHERE isDeleted = 0`, (err, rows) => {
-    if (err) return res.status(500).json({ message: "Gagal GET users", error: err });
-    res.status(200).json(rows);
-  });
-});
-
-// --- GET DETAIL /:id ---
-router.get("/:id", (req, res) => {
-  const { id } = req.params;
-  const query = `SELECT idRegistration, dibuat_tanggal, dibuat_jam, status, name, address, gender, religion, birthPlace, birthDate, parentPhone, foto FROM registration WHERE idRegistration = ?`;
-
-  db.query(query, [id], (err, results) => {
-    if (err) return res.status(500).json({ message: "Gagal GET users", error: err });
-    if (results.length === 0) return res.status(404).json({ message: "Data tidak ditemukan" });
-
-    const row = results[0];
-    if (row.foto) row.foto = `uploads/${row.foto}`;
-
-    res.status(200).json(row);
-  });
-});
-
-// --- GET ALL (admin) ---
-router.get("/get-all", (req, res) => {
-  db.query(`SELECT * FROM registration`, (err, rows) => {
-    if (err) return res.status(500).json({ message: "Gagal GET users", error: err });
-    res.status(200).json(rows);
-  });
-});
-
-// --- EDIT ---
-router.put("/edit/:id", upload.fields([
-  { name: "akte", maxCount: 1 },
-  { name: "familyRegister", maxCount: 1 },
-  { name: "tkCertificate", maxCount: 1 },
-  { name: "foto", maxCount: 1 },
-]), (req, res) => {
-  const { id } = req.params;
-  const {
-    name,
-    gender,
-    religion,
-    birthPlace,
-    birthDate,
-    address,
-    parentPhone,
-    email,
-  } = req.body;
-
-  if (!name || !gender || !religion || !birthPlace || !birthDate || !address || !parentPhone || !email) {
-    return res.status(400).json({ message: "All data must be provided." });
-  }
-
-  db.query(`SELECT * FROM registration WHERE id = ?`, [id], (err, results) => {
-    if (err) return res.status(500).json({ message: "Database error", error: err });
-    if (results.length === 0) return res.status(404).json({ message: "Data not found" });
 
     const row = results[0];
 
@@ -190,7 +203,7 @@ router.put("/edit/:id", upload.fields([
       SET name = ?, gender = ?, religion = ?, birthPlace = ?, birthDate = ?, address = ?, parentPhone = ?, email = ?, akte = ?, familyRegister = ?, tkCertificate = ?, foto = ?
       WHERE id = ?`;
 
-    db.query(updateQuery, [
+    await db.execute(updateQuery, [
       name,
       gender,
       religion,
@@ -204,44 +217,61 @@ router.put("/edit/:id", upload.fields([
       tkCertificate,
       foto,
       id,
-    ], (err) => {
-      if (err) return res.status(500).json({ message: "Failed to update registration data", error: err });
-      res.status(200).json({ message: `Update successful for id ${id}` });
-    });
-  });
+    ]);
+    
+    res.status(200).json({ message: `Update successful for id ${id}` });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to update registration data", error: err.message });
+  }
 });
 
 // --- SOFT DELETE ---
-router.delete("/delete/:id", (req, res) => {
-  const { id } = req.params;
-  db.query(`UPDATE registration SET isDeleted = 1 WHERE id = ?`, [id], (err, result) => {
-    if (err) return res.status(500).json({ message: "Failed to delete data", error: err });
-    if (result.affectedRows === 0) return res.status(404).json({ message: "Data not found" });
+router.delete("/delete/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [result] = await db.execute(`UPDATE registration SET isDeleted = 1 WHERE id = ?`, [id]);
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Data not found" });
+    }
+    
     res.status(200).json({ message: `Data with id ${id} has been soft deleted` });
-  });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to delete data", error: err.message });
+  }
 });
 
 // --- RESTORE ---
-router.put("/restore/:id", (req, res) => {
-  const { id } = req.params;
-  db.query(`UPDATE registration SET isDeleted = 0 WHERE id = ?`, [id], (err, result) => {
-    if (err) return res.status(500).json({ message: "Failed to restore data", error: err });
-    if (result.affectedRows === 0) return res.status(404).json({ message: "Data not found or not deleted" });
+router.put("/restore/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [result] = await db.execute(`UPDATE registration SET isDeleted = 0 WHERE id = ?`, [id]);
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Data not found or not deleted" });
+    }
+    
     res.status(200).json({ message: `Data with id ${id} has been restored` });
-  });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to restore data", error: err.message });
+  }
 });
 
 // --- UPDATE STATUS ---
-router.put("/:id/status", (req, res) => {
-  const { id } = req.params;
-  const { status } = req.body;
+router.put("/:id/status", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
 
-  if (!status) return res.status(400).json({ error: "Status is required" });
+    if (!status) {
+      return res.status(400).json({ error: "Status is required" });
+    }
 
-  db.query(`UPDATE registration SET status = ? WHERE id = ?`, [status, id], (err, result) => {
-    if (err) return res.status(500).json({ error: err.message });
+    const [result] = await db.execute(`UPDATE registration SET status = ? WHERE id = ?`, [status, id]);
     res.json({ message: "Status updated successfully", changes: result.affectedRows });
-  });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // --- PRINT PDF ---

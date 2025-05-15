@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
-const multer = require("multer");
+
 
 require('dotenv').config();
 
@@ -16,6 +16,7 @@ const PORT = process.env.PORT;
 app.use(cors({
     origin: process.env.CORS_ORIGIN, 
     methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
 }));
 

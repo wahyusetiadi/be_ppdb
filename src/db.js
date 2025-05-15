@@ -1,25 +1,28 @@
 const mysql = require('mysql2');
-const path = require("path");
-const fs = require("fs");
 const dotenv = require('dotenv');
+
 
 dotenv.config();
 
-const db = mysql.createConnection({
+const pool = mysql.createPool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
-  port: parseInt(process.env.DB_PORT)
-});
+  port: parseInt(process.env.DB_PORT),
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
+}); 
 
-db.connect((err) => {
-  if (err) {
-    console.error('Error connecting to MySQL database:', err.message);
+pool.getConnection((err, connection) => {
+  if(err) {
+    console.error('Error connecting to MySQL pool:', err.message);
   } else {
-    console.log('Connected to MySQL database.');
-  }
+    console.log('Connected to MySQL database via connection pool.');
+    connection.release();  // penting untuk melepaskan koneksi kembali ke pool
+  } 
 });
 
 
-module.exports = db;
+module.exports = pool.promise(); // <--- penting agar bisa pakai async/await

@@ -7,48 +7,6 @@ const jwt = require("jsonwebtoken");
 const db = require('../db')
 const SECRET_KEY = "mysecretkey";
 
-//create
-router.post("/", (req, res) => {
-  const {
-    name,
-    gender,
-    religion,
-    birthPlace,
-    birthDate,
-    address,
-    parentPhone,
-    documents,
-  } = req.body;
-  db.query(
-    `INSERT INTO registration (name, gender, religion, birthPlace, birthDate, address, parentPhone, documents) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      name,
-      gender,
-      religion,
-      birthPlace,
-      birthDate,
-      address,
-      parentPhone,
-      documents,
-    ],
-    function (err) {
-      if (err) {
-        return res.status(500).json({ error: err.message });
-      }
-      res.status(201).json({
-        id: this.lastID,
-        name,
-        gender,
-        religion,
-        birthPlace,
-        birthDate,
-        address,
-        parentPhone,
-        documents,
-      });
-    }
-  );
-});
 
 //read
 router.get("/", (req, res) => {
@@ -58,60 +16,6 @@ router.get("/", (req, res) => {
     }
     res.json({ user: rows });
   });
-});
-
-//update
-router.put("/:id", (req, res) => {
-  const { id } = req.params;
-  const {
-    name,
-    gender,
-    religion,
-    birthPlace,
-    birthDate,
-    address,
-    parentPhone,
-    documents,
-  } = req.body;
-
- 
-
-  const updateQuery = `
-    UPDATE registration
-    SET name = ?, gender = ?, religion = ?, birthPlace = ?, birthDate = ?, address = ?, parentPhone = ?, documents = ?
-    WHERE id = ?
-    `;
-
-  db.query(
-    updateQuery,
-    [
-      name,
-      gender,
-      religion,
-      birthPlace,
-      birthDate,
-      address,
-      parentPhone,
-      documents,
-      id,
-    ],
-    function (err) {
-      if (err) {
-        return res
-          .status(500)
-          .json({ message: "Gagal memperbarui user", error: err });
-      }
-
-      if (this.changes === 0) {
-        return res.status(404).json({ message: "user tidak ditemukan" });
-      }
-
-      res
-        .status(200)
-        .json({ message: `Registrasi dengan ID ${id} berhasil diperbarui.` });
-    }
-  );
-  // })
 });
 
 //delete
@@ -180,7 +84,7 @@ router.post("/login", (req, res) => {
           .json({ message: "Username atau Password salah! " });
       }
 
-      const isPasswordValid = await bcrypt.compare(password, user.password);
+      const isPasswordValid = await bcrypt.compare(password, user[0].password);
       if (!isPasswordValid) {
         return res
           .status(401)
