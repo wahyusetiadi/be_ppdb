@@ -12,7 +12,6 @@ const exportRoutes = require('./src/routes/exportRoutes');
 const app = express();
 const PORT = process.env.PORT;
 
-// middleware CORS
 app.use(cors({
     origin: process.env.CORS_ORIGIN, 
     methods: ["GET", "POST", "PUT", "DELETE"],
@@ -20,10 +19,8 @@ app.use(cors({
     credentials: true,
 }));
 
-// middleware untuk parsing JSON
 app.use(express.json());
 
-// folder statis untuk akses file upload
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // setup view engine

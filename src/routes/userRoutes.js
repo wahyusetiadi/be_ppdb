@@ -1,112 +1,98 @@
 const express = require("express");
 const router = express.Router();
-const mysql = require('mysql2');
+const mysql = require("mysql2");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
-const db = require('../db')
-const SECRET_KEY = "mysecretkey";
-
+const db = require("../db");
+const { sendError } = require("../utils/response");
+const SECRET_KEY = process.env.SECRET_KEY;
 
 //read
-router.get("/", (req, res) => {
-  db.query(`SELECT * FROM users`, [], (err, rows) => {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
-    res.json({ user: rows });
-  });
+router.get("/", async (req, res) => {
+  try {
+    const [rows] = await db.query(`SELECT * FROM users`);
+    res.status(200).json(rows);
+  } catch (err) {
+    res.status(500).json({ message: "Gagal GET users", error: err.message });
+  }
 });
 
 //delete
-router.delete("/:id", (req, res) => {
-  const { id } = req.params;
-  const query = `DELETE FROM users WHERE id + ?`;
+router.delete("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log("get id delete", id);
 
-  db.query(query, [id], function (err) {
-    if (err) {
-      return res
-        .status(500)
-        .json({ message: `Gagal menghapus user`, error: err });
-    }
-    if (this.changes === 0) {
+    const [result] = await db.execute(`DELETE FROM users WHERE id = ?`, [id]);
+    if (result.affectedRows === 0) {
       return res.status(404).json({ message: "User tidak ditemukan " });
     }
     res.status(200).json({ message: `Berhasil menghapus user id: ${id}` });
-  });
+  } catch (err) {
+    res.status(500).json({ message: `Gagal menghapus user`, error: err });
+  }
 });
 
 // API untuk register user (bisa dihapus kalau hanya butuh login)
 router.post("/register", async (req, res) => {
   const { username, password } = req.body;
-
-  if (!username || !password) {
-    return res
-      .status(400)
-      .json({ message: "Username dan password wajib diisi" });
-  }
+  const query = `INSERT INTO users ( username, password ) VALUES (?, ?)`;
 
   try {
+    if (!username || !password) {
+      return res
+        .status(400)
+        .json({ message: "Username dan password wajib diisi" });
+    }
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    console.log("Mencoba insert user:", username); // Debugging log
-
-    db.query(
-      "INSERT INTO users (username, password) VALUES (?, ?)",
-      [username, hashedPassword],
-      function (err) {
-        if (err) {
-          console.error("Error saat insert user:", err.message);
-          return res
-            .status(500)
-            .json({ message: "Gagal menambahkan user", error: err.message });
-        }
-        res.json({ message: "User berhasil didaftarkan", id: this.lastID });
-      }
-    );
-  } catch (error) {
-    console.error("Error hashing password:", error);
-    res.status(500).json({ message: "Error internal", error: error.message });
+    await db.execute(query, [username, hashedPassword]);
+    res.status(201).json({ message: `Success Registration` });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 });
 
 //API untuk login user
-router.post("/login", (req, res) => {
+router.post("/login", async (req, res) => {
   const { username, password } = req.body;
 
-  db.query(
-    "SELECT * FROM users WHERE username = ?",
-    [username],
-    async (err, user) => {
-      if (err || !user) {
-        return res
-          .status(401)
-          .json({ message: "Username atau Password salah! " });
-      }
+  try {
+    const [rows] = await db.query("SELECT * FROM users WHERE username = ?", [
+      username,
+    ]);
 
-      const isPasswordValid = await bcrypt.compare(password, user[0].password);
-      if (!isPasswordValid) {
-        return res
-          .status(401)
-          .json({ message: "Username atau Password salah!" });
-      }
-
-      const token = jwt.sign(
-        { id: user.id, username: user.username },
-        SECRET_KEY,
-        { expiresIn: "1h" }
-      );
-
-      console.log("token res", token);
-      const decoded = jwt.decode(token);
-      console.log(decoded); // Akan menampilkan { id: 1, username: "admin", iat: 1700000000, exp: 1700003600 }
-
-      res.json({
-        token,
-        user: { id: user.id, username: user.username }
-      });
+    //Check Username into database
+    if (rows.length === 0) {
+      return sendError(res, "Username tidak terdaftar", 404);
     }
-  );
+
+    const user = rows[0];
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+
+    if (!isPasswordValid) {
+      // return res.status(401).json({ message: "Username atau Password salah!" });
+      sendError(res, "Username atau Password salah!", 404);
+    }
+
+    const token = jwt.sign(
+      { id: user.id, username: user.username },
+      SECRET_KEY,
+      { expiresIn: "1h" }
+    );
+
+    res.json({
+      token,
+      user: { id: user.id, username: user.username },
+    });
+  } catch (err) {
+    console.error("Login error:", err);
+    res
+      .status(500)
+      .json({ message: "Terjadi kesalahan saat login.", error: err.message });
+  }
 });
 
 // API untuk mendapatkan data pengguna berdasarkan token

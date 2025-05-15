@@ -20,9 +20,9 @@ pool.getConnection((err, connection) => {
     console.error('Error connecting to MySQL pool:', err.message);
   } else {
     console.log('Connected to MySQL database via connection pool.');
-    connection.release();  // penting untuk melepaskan koneksi kembali ke pool
+    connection.release();  
   } 
 });
 
 
-module.exports = pool.promise(); // <--- penting agar bisa pakai async/await
+module.exports = pool.promise(); 
