@@ -74,7 +74,7 @@ router.post("/login", async (req, res) => {
 
     if (!isPasswordValid) {
       // return res.status(401).json({ message: "Username atau Password salah!" });
-      sendError(res, "Username atau Password salah!", 404);
+      return sendError(res, "Username atau Password salah!", 404);
     }
 
     const token = jwt.sign(

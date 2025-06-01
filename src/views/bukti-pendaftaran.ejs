@@ -1,3 +1,13 @@
+<%
+    function formatTanggalDDMMYYYY(tanggalString) {
+        const tanggal = new Date(tanggalString);
+        const dd = String(tanggal.getDate()).padStart(2, '0');
+        const mm = String(tanggal.getMonth() + 1).padStart(2, '0');
+        const yyyy = tanggal.getFullYear();
+        return dd + '-' + mm + '-' + yyyy;
+    }
+%>
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -8,100 +18,111 @@
             font-family: Arial, sans-serif;
             font-size: 14px;
         }
-    
+
         .container {
             width: 595px;
             margin: 0 auto;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
             padding-bottom: 16px;
         }
-    
+
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             padding: 20px 40px;
         }
-    
+
+        .header .school-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
         .header img {
             height: 50px;
         }
-    
+
+        .school-name {
+            font-weight: bold;
+            font-size: 18px;
+        }
+
         .title {
             text-align: center;
             font-weight: bold;
             font-size: 20px;
             padding: 32px 0 16px;
         }
-    
+
         .section {
             padding: 0 40px;
         }
-    
+
         .photo-info {
             display: flex;
             gap: 24px;
             text-align: left;
         }
-    
+
         .photo {
             width: 120px;
             height: 160px;
             background-color: #1e293b;
         }
-    
+
         .photo img {
             width: 100%;
             height: 100%;
             object-fit: cover;
         }
-    
+
         .info {
             display: flex;
             flex-direction: column;
             gap: 14px;
             flex: 1;
         }
-    
+
         .row {
             display: flex;
             gap: 12px;
             align-items: flex-start;
         }
-    
+
         .label {
             font-weight: bold;
             width: 160px;
         }
-    
+
         .full-info {
             margin-top: 32px;
             display: flex;
             flex-direction: column;
             gap: 14px;
         }
-    
+
         .full-info .row .label {
             min-width: 224px;
         }
-    
+
         .divider {
             height: 1px;
             background-color: #ccc;
             width: 100%;
         }
     </style>
-    
 </head>
 <body>
     <div class="container">
+
         <!-- Header -->
         <div class="header">
-            <div style="display: flex; align-items: center; gap: 12px;">
-                <img src="<%= logoSekolahBase64 %>" alt="Logo Sekolah" width="100" />
-                <p style="font-weight: bold; font-size: 18px;">SD XYZ 1</p>
+            <div class="school-info">
+                <img src="<%= logoSekolahBase64 %>" alt="Logo Sekolah" />
+                <p class="school-name">SD XYZ 1</p>
             </div>
-            <img src="<%= logoEduNEXBase64 %>" alt="Logo EduNEX" width="100" />
+            <img src="<%= logoEduNEXBase64 %>" alt="Logo EduNEX" />
         </div>
 
         <div class="divider"></div>
@@ -121,9 +142,10 @@
                         <p><%= data.idRegistration %></p>
                     </div>
                     <div class="divider"></div>
+
                     <div class="row">
                         <p class="label">Tanggal Registrasi:</p>
-                        <p><%= data.dibuat_tanggal %> | <%= data.dibuat_jam %></p>
+                        <p><%= formatTanggalDDMMYYYY(data.dibuat_tanggal) %> | <%= data.dibuat_jam %></p>
                     </div>
                     <div class="divider"></div>
                 </div>
@@ -137,32 +159,38 @@
                 <p><%= data.name %></p>
             </div>
             <div class="divider"></div>
+
             <div class="row">
                 <p class="label">Jenis Kelamin:</p>
                 <p><%= data.gender %></p>
             </div>
             <div class="divider"></div>
+
             <div class="row">
                 <p class="label">Agama:</p>
                 <p><%= data.religion %></p>
             </div>
             <div class="divider"></div>
+
             <div class="row">
                 <p class="label">Tempat, Tanggal Lahir:</p>
-                <p><%= data.birthPlace %>, <%= data.birthDate %></p>
+                <p><%= data.birthPlace %>, <%= formatTanggalDDMMYYYY(data.birthDate) %></p>
             </div>
             <div class="divider"></div>
+
             <div class="row">
                 <p class="label">Alamat:</p>
                 <p><%= data.address %></p>
             </div>
             <div class="divider"></div>
+
             <div class="row">
                 <p class="label">No. Telp Orang Tua:</p>
                 <p><%= data.parentPhone %></p>
             </div>
             <div class="divider"></div>
         </div>
+
     </div>
 </body>
 </html>

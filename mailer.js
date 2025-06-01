@@ -1,33 +1,25 @@
-// mailer.js
-require("dotenv").config();
-const nodemailer = require("nodemailer");
+const transporter = require("./config/emailConfig");
+const generateRegistrationEmail = require("./templates/registrationEmail");
 
-// GANTI dengan email aplikasi kamu dan app password Gmail
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
-
-const sendRegistrationEmail = (to, id) => {
-  const link = `https://ppdb.edunex.id/bukti-pendaftaran/${id}`; // GANTI ke link frontend kamu
+const sendRegistrationEmail = async (to, id) => {
+  const { subject, html } = generateRegistrationEmail(id);
 
   const mailOptions = {
-    from: `PPDB Admin <${process.env.EMAIL_USER}>`,
+    from: `PPDB Admin <${process.env.EMAIL_USER}`,
     to,
-    subject: "Bukti Pendaftaran PPDB",
-    html: `
-      <h3>Selamat, pendaftaran berhasil!</h3>
-      <p>Silakan klik link berikut untuk melihat bukti pendaftaran Anda:</p>
-      <a href="${link}">Lihat bukti pendaftaran</a>
-      <br><br>
-      <p>Terima kasih telah mendaftar.</p>
-    `,
+    subject,
+    html,
   };
 
-  return transporter.sendMail(mailOptions);
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log("Email sent: ", info.response);
+    return info;
+  } catch (error) {
+    console.error("Email failed to send: ", error);
+    throw error;
+  }
 };
 
 module.exports = sendRegistrationEmail;
