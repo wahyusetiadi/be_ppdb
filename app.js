@@ -12,10 +12,19 @@ const exportRoutes = require('./src/routes/exportRoutes');
 const app = express();
 const PORT = process.env.PORT;
 
+const allowedOrigins = [
+    'http://kevin.edunex.id:3352',
+    'http://localhost:3000'
+]
+
 app.use(cors({
-    origin: process.env.CORS_ORIGIN, 
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    origin: function (origin, callback) {
+        if(!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'))
+        }
+    },
     credentials: true,
 }));
 
